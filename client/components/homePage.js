@@ -8,7 +8,7 @@ import AuthenticatedResource from './authenticatedResourceButton.jsx'
 
 const mapStateToProps = (state) => {
   return {
-    loggedIn: (state.auth.token !== null),
+    loggedIn: (state.auth.token !== null),x
     resourceData: state.authenticatedResourceData
   };
 };
@@ -22,45 +22,17 @@ const mapDispatchToProps = (dispatch) => {
 
 
 const HomePage = ({loginRequest, logout, loggedIn, resourceData}) => {
+  <WrapperDiv>
 
-  if (loggedIn) {
-    var button = (
-      <Button onClick={logout} >
-        Logout
-      </Button>
-    )
-  } else {
-    var button = (
-      <Button onClick={loginRequest} >
-        Login
-      </Button>
-    )
-  }
-
-  if (resourceData.isRequesting) {
-    var dataMessage = 'Loading'
-  } else if (resourceData.error) {
-    dataMessage = resourceData.error
-  } else if (resourceData.data) {
-    dataMessage = 'foo: ' + resourceData.data.foo
-  } else {
-    dataMessage = ''
-  }
-
-  return (
-    <WrapperDiv>
-
-        { button }
-        <Message>
-          {loggedIn? 'Logged in!':'Not logged in'}
-        </Message>
-        <AuthenticatedResource/>
-        <Message>
-          { dataMessage }
-        </Message>
-    </WrapperDiv>
-  );
-
+      { button }
+      <Message>
+        {loggedIn? 'Logged in!':'Not logged in'}
+      </Message>
+      <AuthenticatedResource/>
+      <Message>
+        { dataMessage }
+      </Message>
+  </WrapperDiv>
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(HomePage);

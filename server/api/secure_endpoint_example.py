@@ -7,7 +7,14 @@ from server.utils.auth import AuthenticatedResource
 secure_endpoint_api = Api(Blueprint('api', __name__))
 
 @secure_endpoint_api.resource('/secure_endpoint/')
-class Refresh_API_Token(AuthenticatedResource):
+class Get_Test_Data(AuthenticatedResource):
 
     def get(self):
         return {'foo': 'bar'}
+
+
+@secure_endpoint_api.resource('/evaluate/')
+class Evaluate_Model(AuthenticatedResource):
+
+    def get(self):
+        return {'foo': 'star'}

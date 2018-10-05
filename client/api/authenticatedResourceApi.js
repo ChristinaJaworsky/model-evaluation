@@ -11,7 +11,7 @@ const handle_response = (response) => {
 export const requestAuthenticatedResourceAPI= () => {
   return fetch('/api/secure_endpoint/' , {
     headers: {
-      'Authorization': 'Bearer ' + getToken()
+      'Authorization': 'Bearer XXX'
     },
     method: 'get'
     })
