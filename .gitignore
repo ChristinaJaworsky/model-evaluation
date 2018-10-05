@@ -1,0 +1,14 @@
+
+env/*
+*.pyc
+
+*.ini
+
+node_modules/*
+package-lock.json
+
+server/static/javascript/bundle.js
+
+*.log
+
+server/static/javascript/bundle.js
