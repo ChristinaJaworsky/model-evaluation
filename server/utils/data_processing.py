@@ -1,8 +1,6 @@
 # Save Model Using Pickle
 import pandas as pd
 import os
-from sklearn import model_selection
-from sklearn.linear_model import LogisticRegression
 import pickle
 import datetime
 import numpy as np
@@ -127,9 +125,9 @@ def determine_if_event_occured_in_furture_x_days(df, event_name, x_days):
     total_event_count_future_x_days = 'total_%s_count_future_x_days' % event_name
     forward_looking_x_day_window.columns = [total_event_count_future_x_days]
 
-    # We then look to see if the sum is greater than 1 to create our boolean success metric.
+    # We then look to see if the sum is greater than 1 to create our boolean success metric (1 for true, 0 for false).
     had_event_in_future_x_days = 'had_%s_in_future_x_days' % event_name
-    forward_looking_x_day_window[had_event_in_future_x_days] = forward_looking_x_day_window[total_event_count_future_x_days].apply(lambda x: x > 0.0)
+    forward_looking_x_day_window[had_event_in_future_x_days] = forward_looking_x_day_window[total_event_count_future_x_days].apply(lambda x: (1 if x > 0.0 else 0))
 
     # Merge the result back into the rest of the original data frame and return
     merged = pd.merge(df, forward_looking_x_day_window[[had_event_in_future_x_days]], on=['customer_id', 'date'], how='inner')
@@ -156,7 +154,7 @@ def get_eligible_training_set(df, event_names=['purchase']):
     return filtered_df
 
 
-def prep_csv_for_model_evaluation(csv):
+def prep_csv_for_model_evaluation(csv, pickle_file=None):
 
     ########################## PHASE 0 #########################
     # Read in the event stream data
@@ -202,72 +200,34 @@ def prep_csv_for_model_evaluation(csv):
 
     df = get_eligible_training_set(df)
 
+    if pickle_file:
+        df.to_pickle(pickle_file)
+        print "Saved dataframe to %s." % pickle_file
+
     return df
 
-csv = "~/Desktop/csvs/TransactionsCompany1.csv"
-df = prep_csv_for_model_evaluation(csv)
-print df
 
+# This tries to load a dataframe from a pickle file, but falls back on
+#   recreating it from the csv if none is found
+def load_dataframe(pickle_file, csv=None, overwrite_pickle=False):
 
-############################################################################################################################
-## customer_id | date | value_l7d | value_l1m | value_l6m | bought_in_future_6m | is_proper_age_for_model
+    if overwrite_pickle:
+        return prep_csv_for_model_evaluation(csv, pickle_file)
 
+    try:
+        df = pd.read_pickle(pickle_file)
+        print "Successfully loaded dataframe from pickle file at %s\n" % pickle_file
+        return df
+    except (IOError, AttributeError) as e:
+        if csv:
+            print "Could not load pickle file at %s.\n   Generating new dataframe from csv at %s.\n" % (pickle_file, csv)
+            return prep_csv_for_model_evaluation(csv, pickle_file)
+        else:
+            print "Could not find pickle file at %s\n   Attempted to generate dataframe from a csv, but no csv was specified.\n" % pickle_file
+            return None
 
-
-# print merged
-
-# print merged
-
-
-
-#
-
-# maxDatesDf.rename(columns={'timestamp':'max_timestamp'}, inplace=True)
-#
-#
-# maxDatesDf = df.assign(L6M=df['timestamp'].apply(lambda x: x - datetime.timedelta(days=6*30)))
-# maxDatesDf = maxDatesDf[['customer_id', 'L6M']]
-#
-#
-# merged = pd.merge(df, maxDatesDf, left_on='customer_id', right_on='customer_id', how='inner')
-#
-# merged = merged.assign(is_prior_to_L6M=merged['timestamp']<merged['L6M'])
-
-
-# print merged
-
-# airport_freq.merge(airports[['id']], left_on='airport_ref', right_on='id', how='inner')[['airport_ident', 'type', 'description', 'frequency_mhz']]
-
-
-# array = df.values
-
-# t = pd.Timestamp('2013-12-25 00:00:00')
-#
-# print df
-
-
-# X = array[:,1:2]
-# Y = array[:,2]
-# test_size = 0.33
-
-
-
-# seed = 7
-# X_train, X_test, Y_train, Y_test = model_selection.train_test_split(X, Y, test_size=test_size, random_state=seed)
-# y=y.astype('int')
-# print X_train
-
-# Fit the model on 33%
-# model = LogisticRegression()
-# model.fit(X_train, Y_train)
-# # save the model to disk
-# path = os.path.abspath(os.path.dirname(__file__))
-# filename = '%s/finalized_model.sav' % path
-# pickle.dump(model, open(filename, 'wb'))
-#
-# # some time later...
-#
-# # load the model from disk
-# loaded_model = pickle.load(open(filename, 'rb'))
-# result = loaded_model.score(X_test, Y_test)
-# print(result)
+if __name__ == "__main__":
+    pickle_file = "./server/static/stored_dataframes/dataframe.pkl"
+    csv = "~/Desktop/csvs/TransactionsCompany1.csv"
+    df = load_dataframe(pickle_file, csv=csv, overwrite_pickle=False)
+    print df
