@@ -57,8 +57,10 @@ def load_models(df, model_paths, generate_new=False):
             print e
             print "Please validate that a model exists at that file path."
     else:
-        generated_model_1 = generate_dummy_logistic_regression_model(df, file_name=model, test_size=0.33, seed=7)
-        generated_model_2 = generate_dummy_logistic_regression_model(df, file_name=model, test_size=0.40, seed=6)
+        if len(model_paths) < 2:
+            raise ValueError("You must inlcude at least two model file paths")
+        generated_model_1 = generate_dummy_logistic_regression_model(df, file_name=model_paths[0], test_size=0.33, seed=7)
+        generated_model_2 = generate_dummy_logistic_regression_model(df, file_name=model_paths[1], test_size=0.40, seed=6)
         loaded_models = [generated_model_1, generated_model_2]
 
     return loaded_models
@@ -85,6 +87,7 @@ def compare_models(csv, model_paths, df_pickle_file=None, generate_new_models=Fa
         print "#########     Evaluation Metrics: Model %s      ############" % (idx+1)
         print "###########################################################\n"
         print_model_evaluation_metrics(Y, Y_predicted)
+        print "\n"
 
 
 
@@ -96,4 +99,4 @@ if __name__ == "__main__":
 
     model_files = [model_1_file, model_2_file]
 
-    compare_models(csv, model_files, df_pickle_file=pickle_file, generate_new_models=False)
+    compare_models(csv, model_files, df_pickle_file=pickle_file, generate_new_models=True)
