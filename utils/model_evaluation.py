@@ -12,6 +12,7 @@ import pprint as pp
 from data_processing import load_dataframe
 
 
+# Creates a dummy logistic regression model given a dataframe.
 def generate_dummy_logistic_regression_model(df, file_name=None, test_size=0.33, seed=7, solver='lbfgs'):
 
     array = df.values
@@ -29,12 +30,8 @@ def generate_dummy_logistic_regression_model(df, file_name=None, test_size=0.33,
     return model
 
 
-def predict_using_model(model, df_input):
-    return model.predict(df_input)
-
-
+# Computes key model evaluation metrics and returns them in a dictionary.
 def compute_model_evaluation_metrics(actual, predicted):
-
     percent_of_total_func = np.vectorize(lambda x: x/float(len(predicted)))
 
     model_evaluation_metrics = {
@@ -71,9 +68,10 @@ def compute_model_evaluation_metrics(actual, predicted):
             'value': metrics.mean_squared_error(actual, predicted)
         }
     }
-
     return model_evaluation_metrics
 
+
+# Pretty print a model's evaluation metrics given a dict with the form of that returned by `compute_model_evaluation_metrics()`
 def print_model_evaluation_metrics(model_metrics_dict, model_number, model_name=None):
 
     print "###########################################################"
@@ -94,6 +92,7 @@ def print_model_evaluation_metrics(model_metrics_dict, model_number, model_name=
     return
 
 
+# Loads multiple .sav scikit-learn model files from the array of model paths specified, or generates two dummy models given a dataframe.
 def load_models(df, model_paths, generate_new=False):
     loaded_models = {}
 
@@ -117,10 +116,10 @@ def load_models(df, model_paths, generate_new=False):
 
 
 # This expects:
-#   - csv: to be a filepath to the input event stream data
-#   - models: to be an array of filepaths .sav model files (and if they don't exist there, they will be created there)
-#   - df_pickle_file: an optional argument that can be used to bypass the processing of the csv.
-#   - generate_new_models: an option argument purely for internal use, used to generate two very similar models at the specified file paths.
+#   - csv: to be a filepath to the input event stream data of form `customer_id | event_timestamp | event_value`
+#   - models: to be an array of filepaths to .sav scikit-learn model files (and if they don't exist there, they will be created there)
+#   - df_pickle_file: an optional argument that can be used to bypass the processing of the csv with an existing dataframe pickle file.
+#   - generate_new_models: an optional argument purely for internal use, used to generate two very similar models at the specified file paths.
 def compare_models(csv, model_paths, df_pickle_file=None, print_results=False, generate_new_models=False):
     df = load_dataframe(df_pickle_file, csv=csv, overwrite_pickle=False)
     models = load_models(df, model_paths, generate_new=generate_new_models)
@@ -133,7 +132,7 @@ def compare_models(csv, model_paths, df_pickle_file=None, print_results=False, g
 
     for idx, model_name in enumerate(models):
         model = models[model_name]
-        Y_predicted = predict_using_model(model, X)
+        Y_predicted = model.predict(X)
         model_evaluation_metrics = compute_model_evaluation_metrics(Y, Y_predicted)
         model_comparison[model_name] = model_evaluation_metrics
 
