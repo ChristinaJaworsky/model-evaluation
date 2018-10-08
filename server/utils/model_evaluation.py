@@ -72,7 +72,7 @@ def load_models(df, model_paths, generate_new=False):
 #   - df_pickle_file: an optional argument that can be used to bypass the processing of the csv.
 #   - generate_new_models: an option argument purely for internal use, used to generate two very similar models at the specified file paths.
 def compare_models(csv, model_paths, df_pickle_file=None, generate_new_models=False):
-    df = load_dataframe(pickle_file, csv=csv, overwrite_pickle=False)
+    df = load_dataframe(df_pickle_file, csv=csv, overwrite_pickle=False)
     models = load_models(df, model_paths, generate_new=generate_new_models)
 
     array = df.values
@@ -92,11 +92,18 @@ def compare_models(csv, model_paths, df_pickle_file=None, generate_new_models=Fa
 
 
 if __name__ == "__main__":
-    pickle_file = "./server/static/stored_dataframes/dataframe.pkl"
-    csv = "~/Desktop/csvs/TransactionsCompany1.csv"
-    model_1_file = "./server/static/stored_models/model_1.sav"
-    model_2_file = "./server/static/stored_models/model_2.sav"
+    import sys
+    from os import path
+    path_to_project = path.dirname( path.dirname( path.abspath('__file__') ) )
+
+
+    INPUT_CSV = './notebook/stored_csvs/TransactionsCompany1.csv'
+
+    PICKLE_FILE_OF_DF = './notebook/stored_dataframes/dataframe.pkl'
+
+    model_1_file = "./notebook/stored_models/model_1.sav"
+    model_2_file = "./notebook/stored_models/model_2.sav"
 
     model_files = [model_1_file, model_2_file]
 
-    compare_models(csv, model_files, df_pickle_file=pickle_file, generate_new_models=True)
+    compare_models(INPUT_CSV, model_files, df_pickle_file=PICKLE_FILE_OF_DF, generate_new_models=True)

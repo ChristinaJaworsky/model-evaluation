@@ -11,7 +11,6 @@ pd.set_option('display.max_columns', 20)
 pd.set_option('display.width', 1000)
 
 
-
 def read_event_stream_data_set(csv, event_name='purchase'):
 
     event_value = '%s_value' % event_name
@@ -156,7 +155,7 @@ def get_eligible_training_set(df, event_names=['purchase']):
 
 def prep_csv_for_model_evaluation(csv, pickle_file=None):
 
-    ########################## PHASE 0 #########################
+    ########################## STEP 1 #########################
     # Read in the event stream data
     # Note: If we had additional csvs consisting of other event types, we could run this method on them and
     #   and perform a full-outer merge between the resulting dataframes to create a single dataframe of
@@ -164,39 +163,36 @@ def prep_csv_for_model_evaluation(csv, pickle_file=None):
     df = read_event_stream_data_set(csv, event_name='purchase')
 
 
-    ########################## PHASE 1 #########################
+    ########################## STEP 2 #########################
     # First transform the event stream into time-series data
 
     df = generate_time_series(df, event_names=['purchase'])
 
 
-    ########################## PHASE 2 #########################
-    # Then add columns to help determine if certain customers on certain days are
-    #   old enough to compute rolling metrics and young enough to look into the future 6 months
-
-    max_rolling_window_span_in_days = 6*30 # 6 months, assuming 30 days per month
-    rolling_window_into_future_in_days =  6*30 # 6 months, assuming 30 days per month
-    df = determine_age_viability_for_model(df, max_rolling_window_span_in_days, rolling_window_into_future_in_days)
-
-
-    ########################## PHASE 3 #########################
+    ########################## STEP 3 #########################
     # Synthesize rolling metrics from the time series data for use as inputs into a model
     #   This is one place where you could experiment more to create a better model.
 
     df = generate_metrics_for_use_as_factors(df)
 
 
-    ########################## PHASE 4 #########################
+    ########################## STEP 4 #########################
     # Add one last column that is the actual categorization that we want to predict.
     #   Did the customer purchase in the future 6 months as of that day?
-
+    rolling_window_into_future_in_days =  6*30 # 6 months, assuming 30 days per month
     df = determine_if_event_occured_in_furture_x_days(df, 'purchase', rolling_window_into_future_in_days)
 
 
-    ########################## PHASE 5 #########################
+    ########################## STEP 5 #########################
     # This is the final step. Our final dataframe only includes customer/date rows that are old
     #   enough and yound enough for the model. It also drops any columns that we don't want to
     #   use as factors or as the categorization.
+
+    # Then add columns to help determine if certain customers on certain days are
+    #   old enough to compute rolling metrics and young enough to look into the future 6 months
+    max_rolling_window_span_in_days = 6*30 # 6 months, assuming 30 days per month
+
+    df = determine_age_viability_for_model(df, max_rolling_window_span_in_days, rolling_window_into_future_in_days)
 
     df = get_eligible_training_set(df)
 
@@ -227,7 +223,7 @@ def load_dataframe(pickle_file, csv=None, overwrite_pickle=False):
             return None
 
 if __name__ == "__main__":
-    pickle_file = "./server/static/stored_dataframes/dataframe.pkl"
-    csv = "~/Desktop/csvs/TransactionsCompany1.csv"
+    pickle_file = './notebook/stored_dataframes/dataframe.pkl'
+    csv = './notebook/stored_csvs/TransactionsCompany1.csv'
     df = load_dataframe(pickle_file, csv=csv, overwrite_pickle=False)
     print df
