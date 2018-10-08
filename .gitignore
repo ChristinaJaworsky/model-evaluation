@@ -12,3 +12,7 @@ server/static/javascript/bundle.js
 *.log
 
 server/static/javascript/bundle.js
+
+notebook/stored_csvs/*
+notebook/stored_dataframes/*
+notebook/stored_models/*
