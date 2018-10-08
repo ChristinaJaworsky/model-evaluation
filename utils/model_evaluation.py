@@ -149,14 +149,11 @@ if __name__ == "__main__":
     from os import path
     path_to_project = path.dirname( path.dirname( path.abspath('__file__') ) )
 
-
     INPUT_CSV = './notebook/stored_csvs/TransactionsCompany1.csv'
-
     PICKLE_FILE_OF_DF = './notebook/stored_dataframes/TransactionsCompany1.pkl'
 
     model_1_file = "./notebook/stored_models/model_1.sav"
     model_2_file = "./notebook/stored_models/model_2.sav"
-
     model_files = [model_1_file, model_2_file]
 
     model_comparison_results = compare_models(INPUT_CSV, model_files, df_pickle_file=PICKLE_FILE_OF_DF, print_results=False, generate_new_models=True)

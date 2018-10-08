@@ -6,11 +6,9 @@ import datetime
 import numpy as np
 
 
-pd.set_option('display.max_rows', 100)
-pd.set_option('display.max_columns', 20)
-pd.set_option('display.width', 1000)
-
-
+# Parses a csv of the form `customer_id | event_timestamp | event_value` and turns it into a dataframe
+#   with one row per customer per day on which one or more events occured. This dataframe has two
+#   synthesized columns: one with the sum of event values on each day, and another with the event counts on each day.
 def read_event_stream_data_set(csv, event_name='purchase'):
 
     event_value = '%s_value' % event_name
@@ -34,6 +32,8 @@ def read_event_stream_data_set(csv, event_name='purchase'):
 
     return df_rollup
 
+
+# Given a list of event names, this will return the generated column names for each event name.
 def get_event_name_columns(event_names=['purchase']):
     event_name_columns = []
     for event_name in event_names:
@@ -42,6 +42,9 @@ def get_event_name_columns(event_names=['purchase']):
     return event_name_columns
 
 
+# This takes the summarized dataframe from `read_event_stream_data_set` and turns it into a time series,
+#   with one row per customer per day. The first date for a customer is the first day on which they had an event.
+#   All customers have the same final day, and it is the max event date across all customers.
 def generate_time_series(df, event_names=['purchase']):
 
     event_name_columns = get_event_name_columns(event_names)
@@ -91,6 +94,7 @@ def generate_time_series(df, event_names=['purchase']):
     return df_time_series
 
 
+# Adds two columns to a time-series dataframe. One for the rolling x day sum of event values and another for the rolling x day event counts.
 def add_rolling_x_day_sums(df, event_name, x_days):
 
     event_name_columns = get_event_name_columns([event_name])
@@ -107,7 +111,8 @@ def add_rolling_x_day_sums(df, event_name, x_days):
     return merged
 
 
-# This is where one might add additional factors to try in training a model
+# This function adds multiple sets of rolling metrics to our time-series'ed dataframe. These columns will be used as model inputs (i.e. factors).
+#   This is where one might add additional factors to try in training a model if we want to get more sophisticated.
 def generate_metrics_for_use_as_factors(df, event_names=['purchase']):
     for event_name in event_names:
         df = add_rolling_x_day_sums(df, event_name, 1*30)
@@ -116,7 +121,7 @@ def generate_metrics_for_use_as_factors(df, event_names=['purchase']):
     return df
 
 
-# This will generate the final column that we use to determine success and to categorize our model off of.
+# This will generate the "target" column – the one that we want to use our model to predict.
 def determine_if_event_occured_in_furture_x_days(df, event_name, x_days):
     # This line reverses the index and creates a forward-looking x-day window to sum across
     forward_looking_x_day_window = df[['%s_count_on_day' % event_name]].iloc[::-1].groupby(level=[0], as_index=False).shift(1).rolling(x_days, min_periods=0).sum()
@@ -133,6 +138,9 @@ def determine_if_event_occured_in_furture_x_days(df, event_name, x_days):
     return merged
 
 
+# This adds additional columns that help to determine if a given customer/date row is the right "Age" to be useful in our model.
+#   Dates that are too close to a customer's first event haven't baked enough to have meaningful rolling metrics. Likewise, dates that
+#   are too old, aka within 6 months of today, haven't had enough time to posibily have a purchase within a future 6 months.
 def determine_age_viability_for_model(df, min_age_days, max_age_days):
     max_date = df.index.get_level_values('date').max()
     df['old_enough_for_model'] = ((df.index.get_level_values('date') - df.first_event_timestamp).dt.days + 1) >= min_age_days
@@ -141,6 +149,8 @@ def determine_age_viability_for_model(df, min_age_days, max_age_days):
     return df
 
 
+# Given the columns generated in `determine_age_viability_for_model()`, this filters our dataframe to only include customer/date
+#   rows that are within the appropriate relative age window.
 def get_eligible_training_set(df, event_names=['purchase']):
 
     filtered_df = df[(df.old_enough_for_model == True) & (df.young_enough_for_model == True)]
@@ -153,49 +163,47 @@ def get_eligible_training_set(df, event_names=['purchase']):
     return filtered_df
 
 
+# This breaks down the processing of a csv into its time-series'ed dataframe into discreet steps.
 def prep_csv_for_model_evaluation(csv, pickle_file=None):
 
-    ########################## STEP 1 #########################
+    ########################## STEP 1: CSV Parsing and Day-Level Summarization #########################
     # Read in the event stream data
-    # Note: If we had additional csvs consisting of other event types, we could run this method on them and
-    #   and perform a full-outer merge between the resulting dataframes to create a single dataframe of
-    #   multiple events for use as input factors later
+    # Note: If we, in the future, wanted to account for mutliple csvs, each with different event types,
+    #   we'd want to execute this function on them as well and join the resulting dataframes together.
     df = read_event_stream_data_set(csv, event_name='purchase')
 
 
-    ########################## STEP 2 #########################
+    ############################## STEP 2: Generate Time Series Dataframe ##############################
     # First transform the event stream into time-series data
 
     df = generate_time_series(df, event_names=['purchase'])
 
 
-    ########################## STEP 3 #########################
+    ################################## STEP 3: Compute Rolling Metrics #################################
     # Synthesize rolling metrics from the time series data for use as inputs into a model
     #   This is one place where you could experiment more to create a better model.
 
     df = generate_metrics_for_use_as_factors(df)
 
 
-    ########################## STEP 4 #########################
+    ################################# STEP 4: Generate "Target" Column #################################
     # Add one last column that is the actual categorization that we want to predict.
     #   Did the customer purchase in the future 6 months as of that day?
     rolling_window_into_future_in_days =  6*30 # 6 months, assuming 30 days per month
     df = determine_if_event_occured_in_furture_x_days(df, 'purchase', rolling_window_into_future_in_days)
 
 
-    ########################## STEP 5 #########################
+    ################### STEP 5: Filter Out Ineligibile Dates & Drop Unneeded Columns ##################
     # This is the final step. Our final dataframe only includes customer/date rows that are old
     #   enough and yound enough for the model. It also drops any columns that we don't want to
     #   use as factors or as the categorization.
 
-    # Then add columns to help determine if certain customers on certain days are
-    #   old enough to compute rolling metrics and young enough to look into the future 6 months
+
     max_rolling_window_span_in_days = 6*30 # 6 months, assuming 30 days per month
-
     df = determine_age_viability_for_model(df, max_rolling_window_span_in_days, rolling_window_into_future_in_days)
-
     df = get_eligible_training_set(df)
 
+    # Finally, we want to save our resulting dataframe to a pickle file so that we don't have to generate it again unnecessarily.
     if pickle_file:
         df.to_pickle(pickle_file)
         print "Saved dataframe to %s." % pickle_file
@@ -222,7 +230,13 @@ def load_dataframe(pickle_file, csv=None, overwrite_pickle=False):
             print "Could not find pickle file at %s\n   Attempted to generate dataframe from a csv, but no csv was specified.\n" % pickle_file
             return None
 
+
 if __name__ == "__main__":
+    pd.set_option('display.max_rows', 100)
+    pd.set_option('display.max_columns', 20)
+    pd.set_option('display.width', 1000)
+
+
     pickle_file = './notebook/stored_dataframes/TransactionsCompany1.pkl'
     csv = './notebook/stored_csvs/TransactionsCompany1.csv'
     df = load_dataframe(pickle_file, csv=csv, overwrite_pickle=False)
