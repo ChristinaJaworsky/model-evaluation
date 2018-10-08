@@ -13,6 +13,6 @@ server/static/javascript/bundle.js
 
 server/static/javascript/bundle.js
 
-notebook/stored_csvs/*
-notebook/stored_dataframes/*
-notebook/stored_models/*
+notebook/stored_csvs/*.csv
+notebook/stored_dataframes/*.pkl
+notebook/stored_models/*.sav
