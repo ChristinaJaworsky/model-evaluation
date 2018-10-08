@@ -223,7 +223,7 @@ def load_dataframe(pickle_file, csv=None, overwrite_pickle=False):
             return None
 
 if __name__ == "__main__":
-    pickle_file = './notebook/stored_dataframes/dataframe.pkl'
+    pickle_file = './notebook/stored_dataframes/TransactionsCompany1.pkl'
     csv = './notebook/stored_csvs/TransactionsCompany1.csv'
     df = load_dataframe(pickle_file, csv=csv, overwrite_pickle=False)
     print df

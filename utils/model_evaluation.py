@@ -77,9 +77,10 @@ def compute_model_evaluation_metrics(actual, predicted):
 def print_model_evaluation_metrics(model_metrics_dict, model_number, model_name=None):
 
     print "###########################################################"
-    print "#########     Evaluation Metrics: Model %s      ############" % (model_number)
+    print "#########     Evaluation Metrics: Model %s      ############" % (model_number or ' ')
     print "###########################################################\n"
-    print "Model Name: %s\n" if model_name else print "\n"
+    if model_name:
+        print "Model Name: %s\n"
     print "%s:\n%s\n" % (model_metrics_dict['accuracy_score'].get('label'), model_metrics_dict['accuracy_score'].get('value'))
     print "%s:\n%s\n" % (model_metrics_dict['log_loss'].get('label'), model_metrics_dict['log_loss'].get('value'))
     print "%s:\n%s\n" % (model_metrics_dict['confusion_matrix'].get('label'), model_metrics_dict['confusion_matrix'].get('value'))
